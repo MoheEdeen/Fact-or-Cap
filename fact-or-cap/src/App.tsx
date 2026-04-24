@@ -16,7 +16,7 @@ type RoomState = {
   code: string;
   hostId: string;
   status: string;
-  totalRounds: number;  
+  totalRounds: number;
   currentRoundNumber: number;
   players: PlayerState[];
   myRole: string | null;
@@ -440,14 +440,17 @@ function App() {
       <section className={`card prompt-card ${showCard ? "is-visible" : ""}`}>
         <h2>{roundStarted?.headline ?? "Loading prompt..."}</h2>
         <p>{roundStarted?.description ?? ""}</p>
+        <p className={`truth-badge ${roundStarted?.truth}`}>
+          FOR TESTING ONLY:{" "}
+          {roundStarted?.truth === "fake" ? "AI GENERATED" : "REAL ARTICLE"}
+        </p>
+
         {roundStarted?.myRole === "manipulator" ? (
           <p className="meta">
             You know the truth: {roundStarted.truth?.toUpperCase() ?? "-"}
           </p>
         ) : (
-          <p className="meta">
-            Discuss and decide. You do not know the answer.
-          </p>
+          <p className="meta">Discuss and decide.</p>
         )}
       </section>
 

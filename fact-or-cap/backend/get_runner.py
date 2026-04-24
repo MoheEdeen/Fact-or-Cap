@@ -1,36 +1,26 @@
 import argparse
 import json
-
-import pandas as pd
+from generate_fake import get_real_political_news, get_fake_political_news
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--json", action="store_true", dest="json_output")
+    parser.add_argument("--mode", choices=["real", "fake"], default="real")
     args = parser.parse_args()
 
-    df = pd.read_json("News_Category_Dataset_v3.json", lines=True)
-    df_politics = df[df["category"] == "POLITICS"]
-
-    random_article = df_politics.sample(1).iloc[0]
-
-    headline = str(random_article["headline"])
-    description = str(random_article["short_description"])
+    if args.mode == "fake":
+        result = get_fake_political_news()
+    else:
+        result = get_real_political_news()
 
     if args.json_output:
-        print(
-            json.dumps(
-                {
-                    "headline": headline,
-                    "description": description,
-                    "answer": "real",
-                }
-            )
-        )
+        print(json.dumps(result))
         return
 
-    print("Headline:", headline)
-    print("Description:", description)
+    print("Headline:", result["headline"])
+    print("Description:", result["description"])
+    print("Answer:", result["answer"])
 
 
 if __name__ == "__main__":
