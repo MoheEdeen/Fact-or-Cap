@@ -1,73 +1,123 @@
-# React + TypeScript + Vite
+# Real or Fake News Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A real-time multiplayer game where players guess whether a political headline is **real** or **AI-generated**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Features
 
-## React Compiler
+- Mix of real and AI-generated news
+- Random **Manipulator** each round
+- Manipulator knows the truth and tries to mislead
+- Citizens vote **REAL** or **FAKE**
+- Live vote tracking
+- Automatic timers, reveal, and next rounds
+- Score system + leaderboard
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- Frontend: React + TypeScript + Vite
+- Backend: Node.js + Express + Socket.IO
+- Python: Pandas + OpenAI API
+- Dataset: News Category Dataset
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Setup
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 1. Install everything
+
+```bash
+npm install
+cd server
+npm install
+pip install pandas python-dotenv openai
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2. Environment variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Create `server/.env`:
+
+```env
+GPT_API_KEY=your_openai_api_key
+PYTHON_CMD=py
+ROUND_TIME_SECONDS=30
+REVEAL_TIME_SECONDS=6
 ```
+
+---
+
+### 3. Required files (inside `/server`)
+
+```
+get_runner.py
+generate_fake.py
+News_Category_Dataset_v3.json
+.env
+server.js
+```
+
+---
+
+### 4. Run the app
+
+```bash
+npm run server
+npm run dev
+```
+
+---
+
+## How the Game Works
+
+1. Players join a room
+2. Game starts
+3. Each round:
+   - One random player = **Manipulator**
+   - First half of rounds = real news
+   - Second half = AI-generated
+   - Manipulator sees the truth
+4. Citizens vote
+5. Reveal happens:
+   - Manipulator can reveal early
+   - OR auto reveal after timer
+6. Scores update:
+   - Citizens get points for correct votes
+   - Manipulator gets points for fooling people
+7. Next round starts automatically
+
+---
+
+## Rules
+
+- Manipulator **cannot vote**
+- Only manipulator can manually reveal
+- Votes only count from citizens
+- Game auto-progresses
+
+---
+
+## Scripts
+
+```bash
+npm run dev
+npm run server
+```
+
+---
+
+## Notes
+
+- Make sure dataset is in `/server`
+- Make sure `.env` key is correct
+- Python must be available as `py` or `python`
+
+---
+
+## License
+
+MIT
