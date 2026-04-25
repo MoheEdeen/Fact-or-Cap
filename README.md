@@ -18,10 +18,10 @@ A real-time multiplayer game where players guess whether a political headline is
 
 ## Tech Stack
 
-- Frontend: React + TypeScript + Vite
-- Backend: Node.js + Express + Socket.IO
-- Python: Pandas + OpenAI API
-- Dataset: News Category Dataset
+- Frontend: React + TypeScript + Vite  
+- Backend: Node.js + Express + Socket.IO  
+- Python: Pandas + OpenAI API  
+- Dataset: News Category Dataset  
 
 ---
 
@@ -63,7 +63,7 @@ server.js
 
 ---
 
-### 4. Run the app
+### 4. Run locally
 
 ```bash
 npm run server
@@ -72,32 +72,53 @@ npm run dev
 
 ---
 
+## Hosting (share with friends)
+
+### Frontend
+
+```bash
+npm run dev -- --host --port=5173
+npx cloudflared tunnel --url http://localhost:5173
+```
+
+### Backend
+
+```bash
+cd server
+npm run server
+npx cloudflared tunnel --url http://localhost:3001
+```
+
+Cloudflare will generate public URLs. Share those links with others.
+
+---
+
 ## How the Game Works
 
-1. Players join a room
-2. Game starts
+1. Players join a room  
+2. Game starts  
 3. Each round:
    - One random player = **Manipulator**
    - First half of rounds = real news
    - Second half = AI-generated
-   - Manipulator sees the truth
-4. Citizens vote
+   - Manipulator sees the truth  
+4. Citizens vote  
 5. Reveal happens:
-   - Manipulator can reveal early
-   - OR auto reveal after timer
+   - Manipulator can reveal early  
+   - OR auto reveal after timer  
 6. Scores update:
-   - Citizens get points for correct votes
-   - Manipulator gets points for fooling people
-7. Next round starts automatically
+   - Citizens get points for correct votes  
+   - Manipulator gets points for fooling people  
+7. Next round starts automatically  
 
 ---
 
 ## Rules
 
-- Manipulator **cannot vote**
-- Only manipulator can manually reveal
-- Votes only count from citizens
-- Game auto-progresses
+- Manipulator **cannot vote**  
+- Only manipulator can manually reveal  
+- Votes only count from citizens  
+- Game auto-progresses  
 
 ---
 
