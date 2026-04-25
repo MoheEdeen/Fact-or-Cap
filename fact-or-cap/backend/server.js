@@ -13,7 +13,8 @@ const PORT = Number(process.env.PORT ?? 3001);
 const ROUND_TIME_SECONDS = Number(process.env.ROUND_TIME_SECONDS ?? 30);
 const DEFAULT_TOTAL_ROUNDS = Number(process.env.DEFAULT_TOTAL_ROUNDS ?? 8);
 const MIN_PLAYERS_TO_START = Number(process.env.MIN_PLAYERS_TO_START ?? 1);
-const PYTHON_CMD = process.env.PYTHON_CMD ?? "python";
+const REVEAL_TIME_SECONDS = Number(process.env.REVEAL_TIME_SECONDS ?? 6);
+const PYTHON_CMD = process.env.PYTHON_CMD ?? "py";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
@@ -108,12 +109,16 @@ function emitRoomState(room) {
     }
 }
 
-async function fetchPromptFromPython() {
-    const { stdout } = await execFileAsync(PYTHON_CMD, ["get_runner.py", "--json"], {
-        cwd: __dirname,
-        timeout: 10000,
-        maxBuffer: 512 * 1024,
-    });
+async function fetchPromptFromPython(mode) {
+    const { stdout } = await execFileAsync(
+        PYTHON_CMD,
+        ["get_runner.py", "--json", "--mode", mode],
+        {
+            cwd: __dirname,
+            timeout: 10000,
+            maxBuffer: 512 * 1024,
+        },
+    );
 
     const parsed = JSON.parse(stdout.trim());
 
@@ -140,6 +145,16 @@ async function startRound(room) {
         throw new Error(`Need at least ${MIN_PLAYERS_TO_START} players to start rounds.`);
     }
 
+    if (room.revealTimer) {
+        clearTimeout(room.revealTimer);
+        room.revealTimer = null;
+    }
+
+    if (room.nextRoundTimer) {
+        clearTimeout(room.nextRoundTimer);
+        room.nextRoundTimer = null;
+    }
+
     if (room.currentRoundNumber >= room.totalRounds) {
         room.status = "finished";
         room.currentRound = null;
@@ -161,7 +176,9 @@ async function startRound(room) {
         player.role = player.id === manipulator.id ? "manipulator" : "citizen";
     });
 
-    const prompt = await fetchPromptFromPython();
+    const halfPoint = Math.ceil(room.totalRounds / 2);
+    const mode = room.currentRoundNumber <= halfPoint ? "real" : "fake";
+    const prompt = await fetchPromptFromPython(mode);
     const now = Date.now();
 
     room.currentRound = {
@@ -177,6 +194,16 @@ async function startRound(room) {
 
     room.status = "in_round";
 
+    room.revealTimer = setTimeout(() => {
+        const latestRoom = rooms.get(room.code);
+
+        if (!latestRoom || !latestRoom.currentRound || latestRoom.currentRound.revealed) {
+            return;
+        }
+
+        revealRound(latestRoom);
+    }, ROUND_TIME_SECONDS * 1000 + 500);
+
     for (const player of room.players) {
         const payload = {
             roundNumber: room.currentRound.roundNumber,
@@ -190,13 +217,17 @@ async function startRound(room) {
 
         io.to(player.socketId).emit("round_started", payload);
     }
-
     emitRoomState(room);
 }
 
 function revealRound(room) {
     if (!room.currentRound || room.currentRound.revealed) {
         return;
+    }
+
+    if (room.revealTimer) {
+        clearTimeout(room.revealTimer);
+        room.revealTimer = null;
     }
 
     room.currentRound.revealed = true;
@@ -241,6 +272,21 @@ function revealRound(room) {
 
     room.status = "reveal";
     emitRoomState(room);
+    room.nextRoundTimer = setTimeout(async () => {
+        const latestRoom = rooms.get(room.code);
+
+        if (!latestRoom || latestRoom.status !== "reveal" || latestRoom.finished) {
+            return;
+        }
+
+        try {
+            await startRound(latestRoom);
+        } catch (error) {
+            io.to(room.code).emit("server_error", {
+                message: error.message,
+            });
+        }
+    }, REVEAL_TIME_SECONDS * 1000);
 }
 
 app.get("/health", (_req, res) => {
@@ -388,11 +434,30 @@ io.on("connection", (socket) => {
                 throw new Error("Vote must be 'real' or 'fake'.");
             }
 
+            const player = getPlayerInRoom(room, playerId);
+
+            if (!player) {
+                throw new Error("Player not found.");
+            }
+
+            if (player.role === "manipulator") {
+                cb?.({ ok: true });
+                return;
+            }
+
             room.currentRound.votes[playerId] = normalizedVote;
 
+            const citizenIds = room.players
+                .filter((player) => player.role === "citizen")
+                .map((player) => player.id);
+
+            const submittedCitizenVotes = citizenIds.filter(
+                (id) => room.currentRound.votes[id],
+            ).length;
+
             io.to(roomCode).emit("vote_progress", {
-                submittedCount: Object.keys(room.currentRound.votes).length,
-                totalPlayers: room.players.length,
+                submittedCount: submittedCitizenVotes,
+                totalPlayers: citizenIds.length,
             });
 
             cb?.({ ok: true });
@@ -413,8 +478,14 @@ io.on("connection", (socket) => {
             if (!room || !room.currentRound) {
                 throw new Error("No active round.");
             }
-            if (room.hostId !== playerId) {
-                throw new Error("Only host can reveal round.");
+            const player = getPlayerInRoom(room, playerId);
+
+            if (!player) {
+                throw new Error("Player not found.");
+            }
+
+            if (player.role !== "manipulator") {
+                throw new Error("Only manipulator can reveal round.");
             }
 
             revealRound(room);
